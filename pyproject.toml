@@ -1,0 +1,22 @@
+[project]
+name = "wk-logtool"
+version = "0.1.0"
+description = "ログ解析用の単機能CLIツール群"
+requires-python = ">=3.10"
+dependencies = [
+    "python-dateutil>=2.8",
+    "charset-normalizer>=3.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+logts-tag = "wk_logtool.logts_tag.cli:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
