@@ -5,7 +5,7 @@ import pytest
 
 from wk_logtool.coarsen import cli
 from wk_logtool.coarsen.aggregator import count_by_level, extract_leading_timestamp
-from wk_logtool.coarsen.levels import get_level
+from wk_logtool.coarsen.levels import get_level, make_daynight_level
 
 
 def test_extract_leading_timestamp_basic() -> None:
@@ -70,6 +70,77 @@ def test_count_by_level_skips_unparseable_and_missing_timestamps() -> None:
     result = count_by_level(lines, get_level("ms"))
     assert len(result) == 1
     assert result[0][1] == 1
+
+
+def test_count_by_level_daynight_default_boundaries() -> None:
+    lines = [
+        "20091209 Wed 14:55:10\tafternoon",
+        "20091209 Wed 22:55:10\tnight",
+        "20091209 Wed 06:59:59\tstill previous night",
+        "20091209 Wed 07:00:00\tjust day",
+    ]
+    level = get_level("daynight")
+    result = count_by_level(lines, level)
+    formatted = [(level.format(dt), count) for dt, count in result]
+    assert formatted == [
+        ("20091208 Tue night", 1),
+        ("20091209 Wed day", 2),
+        ("20091209 Wed night", 1),
+    ]
+
+
+def test_count_by_level_daynight_night_crosses_midnight_keeps_start_date() -> None:
+    lines = ["20091210 Thu 01:55:10\tearly morning"]
+    level = get_level("daynight")
+    result = count_by_level(lines, level)
+    formatted = [(level.format(dt), count) for dt, count in result]
+    assert formatted == [("20091209 Wed night", 1)]
+
+
+def test_make_daynight_level_custom_boundaries() -> None:
+    level = make_daynight_level(day_start_hour=6, night_start_hour=20)
+    lines = [
+        "20091209 Wed 19:59:59\ta",
+        "20091209 Wed 20:00:00\tb",
+    ]
+    result = count_by_level(lines, level)
+    formatted = [(level.format(dt), count) for dt, count in result]
+    assert formatted == [
+        ("20091209 Wed day", 1),
+        ("20091209 Wed night", 1),
+    ]
+
+
+def test_make_daynight_level_rejects_day_not_before_night() -> None:
+    with pytest.raises(ValueError):
+        make_daynight_level(day_start_hour=22, night_start_hour=7)
+
+
+def test_cli_end_to_end_daynight_with_custom_boundaries(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    data = (
+        b"20091209 Wed 14:55:16.000000\tfirst\n"
+        b"20091209 Wed 21:55:16.000000\tsecond\n"
+    )
+    monkeypatch.setattr(sys, "stdin", _FakeStdin(data))
+    exit_code = cli.main(["--level", "daynight", "--night-start-hour", "21"])
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert captured.out == "1\t20091209 Wed day\n1\t20091209 Wed night\n"
+
+
+def test_cli_daynight_invalid_boundaries_shows_error(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    data = b"20091209 Wed 14:55:16.000000\tfirst\n"
+    monkeypatch.setattr(sys, "stdin", _FakeStdin(data))
+    exit_code = cli.main(
+        ["--level", "daynight", "--day-start-hour", "22", "--night-start-hour", "7"]
+    )
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert "エラー" in captured.err
 
 
 def test_no_files_and_no_piped_stdin_shows_error_and_usage(

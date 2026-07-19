@@ -19,7 +19,13 @@ from wk_logtool.common.cli_io import no_piped_input, open_binary_sources
 from wk_logtool.common.text_encoding import decode_line
 
 from .aggregator import count_by_level
-from .levels import LEVEL_NAMES, get_level
+from .levels import (
+    DEFAULT_DAY_START_HOUR,
+    DEFAULT_NIGHT_START_HOUR,
+    LEVEL_NAMES,
+    get_level,
+    make_daynight_level,
+)
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -44,8 +50,29 @@ def build_arg_parser() -> argparse.ArgumentParser:
             "丸めの粒度。細かい順に: "
             "ms(ミリ秒切り捨て), sec1(秒を10秒単位に丸め), "
             "sec2(秒を切り捨て), min1(分を10分単位に丸め), "
-            "min2(分を切り捨て), hour(時を切り捨て、日単位), "
+            "min2(分を切り捨て), daynight(day/nightの2区分に丸める), "
+            "hour(時を切り捨て、日単位), "
             "weekday(曜日非表示の日単位), date(全件を1グループに集約)。"
+        ),
+    )
+    parser.add_argument(
+        "--day-start-hour",
+        type=int,
+        default=DEFAULT_DAY_START_HOUR,
+        metavar="H",
+        help=(
+            "--level daynight のときのみ有効。dayの開始時刻(0-23、"
+            f"デフォルト{DEFAULT_DAY_START_HOUR})。"
+        ),
+    )
+    parser.add_argument(
+        "--night-start-hour",
+        type=int,
+        default=DEFAULT_NIGHT_START_HOUR,
+        metavar="H",
+        help=(
+            "--level daynight のときのみ有効。nightの開始時刻(0-23、"
+            f"デフォルト{DEFAULT_NIGHT_START_HOUR})。"
         ),
     )
     return parser
@@ -65,7 +92,15 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
-    level = get_level(args.level)
+    if args.level == "daynight":
+        try:
+            level = make_daynight_level(args.day_start_hour, args.night_start_hour)
+        except ValueError as exc:
+            parser.print_usage(sys.stderr)
+            print(f"coarsen: エラー: {exc}", file=sys.stderr)
+            return 2
+    else:
+        level = get_level(args.level)
 
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -76,7 +111,7 @@ def main(argv: list[str] | None = None) -> int:
                 yield decode_line(raw)
 
     for bucket_dt, count in count_by_level(_decoded_lines(), level):
-        print(f"{count}\t{bucket_dt.strftime(level.display_format)}")
+        print(f"{count}\t{level.format(bucket_dt)}")
 
     return 0
 
