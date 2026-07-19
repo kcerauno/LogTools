@@ -5,8 +5,8 @@ from datetime import datetime
 import pytest
 
 from wk_logtool.common.text_encoding import decode_line
-from wk_logtool.logts_tag import cli
-from wk_logtool.logts_tag.tagger import LineTagger
+from wk_logtool.retime import cli
+from wk_logtool.retime.tagger import LineTagger
 
 DEFAULT = datetime(year=2026, month=1, day=1)
 FMT = "%Y%m%d %H:%M:%S.%f"

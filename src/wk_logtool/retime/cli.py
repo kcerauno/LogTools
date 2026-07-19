@@ -1,4 +1,4 @@
-"""logts-tag: ログファイルの日時フォーマットを識別し、変換後タイムスタンプを
+"""retime: ログファイルの日時フォーマットを識別し、変換後タイムスタンプを
 各行の先頭に付与するCLIツール。
 
 出力形式: ``<変換後タイムスタンプ>\\t<ログ原文>``
@@ -52,7 +52,7 @@ def _open_binary_sources(paths: list[str]) -> Iterable[tuple[str, Iterable[bytes
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="logts-tag",
+        prog="retime",
         description=(
             "ログファイルの日時フォーマットを識別し、各行の先頭に"
             "'<変換後タイムスタンプ>\\t<ログ原文>' の形式で付与して標準出力に出す。"
@@ -90,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args.files and sys.stdin.isatty():
         parser.print_usage(sys.stderr)
         print(
-            "logts-tag: エラー: 対象ファイルが指定されておらず、"
+            "retime: エラー: 対象ファイルが指定されておらず、"
             "標準入力からの入力もありません。"
             "ファイルを指定するか、パイプで標準入力に渡してください。",
             file=sys.stderr,
