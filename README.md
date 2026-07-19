@@ -118,6 +118,7 @@ $ retime app.log
 | `compact_date` | `20260719 10:22:01.123456` |
 | `us_date` | `07/19/2026 10:22:01` |
 | `syslog_bsd` | `Jul 19 10:22:01` (年なし、`--default-year` で補完) |
+| `oracle_alert_ctime` | `Sat Sep 03 15:31:58 2016` (Oracle Database Alert Log形式。`Sat Sep  3 ...` のようなスペース埋め日付にも対応) |
 
 新しい書式を追加したい場合は `patterns.py` の `CANDIDATE_PATTERNS` に
 正規表現を1つ追加するだけです。日付と時刻の区切りが特殊で

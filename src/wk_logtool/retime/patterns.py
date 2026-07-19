@@ -87,4 +87,12 @@ CANDIDATE_PATTERNS: list[PatternSpec] = [
         r"(?P<ts>\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)"
         r"\s+\d{1,2}\s\d{2}:\d{2}:\d{2}\b)",
     ),
+    # Sat Sep 03 15:31:58 2016 (Oracle Database Alert LogのUnix ctime形式)
+    # 1桁日を "Sep  3" のようにスペース埋めする書式にも対応。
+    _p(
+        "oracle_alert_ctime",
+        r"(?P<ts>\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+"
+        r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)"
+        r"\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+\d{4}\b)",
+    ),
 ]

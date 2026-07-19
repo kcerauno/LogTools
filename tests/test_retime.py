@@ -47,6 +47,18 @@ def test_syslog_missing_year_uses_default() -> None:
     assert out.startswith("20200105 03:00:00.000000\t")
 
 
+def test_oracle_alert_log_ctime_zero_padded_day() -> None:
+    tagger = new_tagger()
+    out = tagger.tag_line("Sat Sep 03 15:31:58 2016")
+    assert out.startswith("20160903 15:31:58.000000\t")
+
+
+def test_oracle_alert_log_ctime_space_padded_day() -> None:
+    tagger = new_tagger()
+    out = tagger.tag_line("Sat Sep  3 15:31:58 2016")
+    assert out.startswith("20160903 15:31:58.000000\t")
+
+
 def test_multiple_timestamps_uses_earliest_occurring() -> None:
     tagger = new_tagger()
     out = tagger.tag_line("first=2026-01-01T00:00:00 second=2026-12-31T23:59:59")
