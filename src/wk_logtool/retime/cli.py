@@ -15,39 +15,14 @@ from __future__ import annotations
 
 import argparse
 import sys
-from collections.abc import Iterable, Iterator
 from datetime import datetime
 
+from wk_logtool.common.cli_io import no_piped_input, open_binary_sources
 from wk_logtool.common.text_encoding import decode_line
 
 from .tagger import LineTagger
 
 DEFAULT_OUTPUT_FORMAT = "%Y%m%d %H:%M:%S.%f"
-
-
-def _strip_newline(raw: bytes) -> bytes:
-    if raw.endswith(b"\n"):
-        raw = raw[:-1]
-    if raw.endswith(b"\r"):
-        raw = raw[:-1]
-    return raw
-
-
-def _iter_raw_lines(stream: object) -> Iterator[bytes]:
-    for raw in stream:  # type: ignore[attr-defined]
-        yield _strip_newline(raw)
-
-
-def _open_binary_sources(paths: list[str]) -> Iterable[tuple[str, Iterable[bytes]]]:
-    if not paths or paths == ["-"]:
-        yield "-", _iter_raw_lines(sys.stdin.buffer)
-        return
-    for path in paths:
-        if path == "-":
-            yield "-", _iter_raw_lines(sys.stdin.buffer)
-            continue
-        with open(path, "rb") as f:
-            yield path, _iter_raw_lines(f)
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -87,7 +62,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_arg_parser()
     args = parser.parse_args(argv)
 
-    if not args.files and sys.stdin.isatty():
+    if no_piped_input(args.files):
         parser.print_usage(sys.stderr)
         print(
             "retime: エラー: 対象ファイルが指定されておらず、"
@@ -103,7 +78,7 @@ def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-    for _path, raw_lines in _open_binary_sources(args.files):
+    for _path, raw_lines in open_binary_sources(args.files):
         tagger = LineTagger(
             output_format=args.output_format,
             default_datetime=default_datetime,

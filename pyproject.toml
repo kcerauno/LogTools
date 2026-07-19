@@ -13,6 +13,7 @@ dev = ["pytest>=7.0"]
 
 [project.scripts]
 retime = "wk_logtool.retime.cli:main"
+coarsen = "wk_logtool.coarsen.cli:main"
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]

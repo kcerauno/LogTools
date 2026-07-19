@@ -1,0 +1,20 @@
+Wed Dec 09 14:55:16 2009
+Errors in file /opt/app/oracle/diag/rdbms/db11/db11/trace/db11_ora_14798.trc:
+ORA-00313: open failed for members of log group 3 of thread 1
+ORA-00312: online log 3 thread 1: '/oradata/db11/redo03.log'
+ORA-27037: unable to obtain file status
+Linux Error: 2: No such file or directory
+Additional information: 3
+Sat Sep 03 15:31:58 2016
+alter pluggable database all open
+Sat Sep 03 15:32:27 2016
+Database Characterset for PDB1 is AL32UTF8
+Sat Sep 03 15:32:27 2016
+Database Characterset for PDB2 is AL32UTF8
+Opening pdb PDB2 (4) with no Resource Manager plan active
+Pluggable database PDB2 opened read write
+Sat Sep 03 15:32:36 2016
+Opening pdb PDB1 (3) with no Resource Manager plan active
+Pluggable database PDB1 opened read write
+Completed: alter pluggable database all open
+
