@@ -2,7 +2,8 @@
 
 大量のログから「変化が起きたと思われる時間帯」を絞り込むため、タイムスタンプを
 段階的に丸めてグルーピングし、件数を数えるための丸めレベル一覧。
-細かい方(ミリ秒)から粗い方(日付)へ、1段階ずつ精度を落としていく。
+細かい方(ミリ秒)から粗い方(年月)へ、1段階ずつ精度を落としていく。
+最も粗い"date"レベルでも年月(YYYYMM)は残り、それ以上は丸めない。
 
 各レベルは、指定した粒度**以下**を切り捨てる(それより細かい情報は
 すべて失われる)。例えば "hour" レベルは時・分・秒・ミリ秒をすべて0にし、
@@ -23,7 +24,6 @@ class Level:
     #: タイムスタンプを、このレベルの粒度に丸め込む関数。
     truncate: Callable[[datetime], datetime]
     #: 丸めた結果を表示するためのstrftimeフォーマット。
-    #: 空文字列の場合は全件を1グループに集約する(表示上は何も出さない)。
     display_format: str
 
 
@@ -82,11 +82,11 @@ LEVELS: list[Level] = [
     ),
     Level(
         name="date",
-        description="日付以下を丸める(全件を1グループに集約)",
+        description="日付(日にち)以下を丸める(月単位。年月のみ残す、最も粗いレベル)",
         truncate=lambda dt: dt.replace(
-            year=1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0
+            day=1, hour=0, minute=0, second=0, microsecond=0
         ),
-        display_format="",
+        display_format="%Y%m",
     ),
 ]
 

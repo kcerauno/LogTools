@@ -168,7 +168,7 @@ $ retime app.log
 | `min2` | 分を切り捨て(時間単位) | `20091209 Wed 14` |
 | `hour` | 時を切り捨て(日単位、曜日表示あり) | `20091209 Wed` |
 | `weekday` | 曜日も非表示にした日単位 | `20091209` |
-| `date` | 日付も切り捨て、全件を1グループに集約 | (空文字。総件数の確認用) |
+| `date` | 日(にち)を切り捨て、年月単位に集約(最も粗いレベル) | `200912` |
 
 ### 使い方
 
@@ -184,9 +184,9 @@ retime --output-format '%Y%m%d %a %H:%M:%S.%f' app.log | coarsen --level date
 `sample_data/ora_alert.log`(Oracle Database Alert Log)を例にすると:
 
 ```bash
-$ retime --output-format '%Y%m%d %a %H:%M:%S.%f' sample_data/ora_alert.log | coarsen --level weekday
-7	20091209
-13	20160903
+$ retime --output-format '%Y%m%d %a %H:%M:%S.%f' sample_data/ora_alert.log | coarsen --level date
+7	200912
+13	201609
 
 $ retime --output-format '%Y%m%d %a %H:%M:%S.%f' sample_data/ora_alert.log | coarsen --level min2
 7	20091209 Wed 14
@@ -199,7 +199,7 @@ $ retime --output-format '%Y%m%d %a %H:%M:%S.%f' sample_data/ora_alert.log | coa
 5	20160903 Sat 15:32:36
 ```
 
-まず`weekday`で日付単位の偏りを見つけ、`min2`で時間帯を絞り込み、
+まず`date`で月単位の偏りを見つけ、`min2`で時間帯を絞り込み、
 最後に`ms`(または`sec1`など)で実際のタイムスタンプの塊を特定する、
 という流れで調査できます。
 

@@ -50,17 +50,15 @@ def test_count_by_level_sec1_floors_to_ten_seconds() -> None:
     ]
 
 
-def test_count_by_level_date_collapses_everything() -> None:
+def test_count_by_level_date_groups_by_year_month() -> None:
     lines = [
         "20091209 Wed 14:55:16\ta",
-        "20160903 Sat 15:31:58\tb",
-        "20160903 Sat 15:32:27\tc",
+        "20091215 Tue 09:00:00\tb",
+        "20160903 Sat 15:31:58\tc",
     ]
     result = count_by_level(lines, get_level("date"))
-    assert len(result) == 1
-    dt, count = result[0]
-    assert count == 3
-    assert dt.strftime(get_level("date").display_format) == ""
+    formatted = [(dt.strftime(get_level("date").display_format), c) for dt, c in result]
+    assert formatted == [("200912", 2), ("201609", 1)]
 
 
 def test_count_by_level_skips_unparseable_and_missing_timestamps() -> None:
