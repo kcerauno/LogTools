@@ -1,6 +1,11 @@
+import io
+import sys
 from datetime import datetime
 
+import pytest
+
 from wk_logtool.common.text_encoding import decode_line
+from wk_logtool.logts_tag import cli
 from wk_logtool.logts_tag.tagger import LineTagger
 
 DEFAULT = datetime(year=2026, month=1, day=1)
@@ -65,3 +70,32 @@ def test_decode_line_handles_utf8_shift_jis_and_euc_jp() -> None:
 
 def test_decode_line_empty_bytes() -> None:
     assert decode_line(b"") == ""
+
+
+def test_no_files_and_no_piped_stdin_shows_error_and_usage(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    exit_code = cli.main([])
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert "usage:" in captured.err
+    assert "エラー" in captured.err
+
+
+class _FakeStdin:
+    def __init__(self, data: bytes) -> None:
+        self.buffer = io.BytesIO(data)
+
+    def isatty(self) -> bool:
+        return False
+
+
+def test_no_files_with_piped_stdin_still_reads_stdin(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(sys, "stdin", _FakeStdin(b"2026-07-19T10:22:01 hello\n"))
+    exit_code = cli.main([])
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert captured.out.startswith("20260719 10:22:01.000000\t")

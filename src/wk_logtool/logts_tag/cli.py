@@ -84,7 +84,18 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_arg_parser().parse_args(argv)
+    parser = build_arg_parser()
+    args = parser.parse_args(argv)
+
+    if not args.files and sys.stdin.isatty():
+        parser.print_usage(sys.stderr)
+        print(
+            "logts-tag: エラー: 対象ファイルが指定されておらず、"
+            "標準入力からの入力もありません。"
+            "ファイルを指定するか、パイプで標準入力に渡してください。",
+            file=sys.stderr,
+        )
+        return 2
 
     year = args.default_year if args.default_year is not None else datetime.now().year
     default_datetime = datetime(year=year, month=1, day=1)

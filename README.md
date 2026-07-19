@@ -51,6 +51,18 @@ tail -f app.log | logts-tag
 cat app.log | logts-tag -
 ```
 
+ファイル指定がなく、標準入力もパイプされていない(端末から直接実行した)
+場合は、入力待ちでハングせずにエラーメッセージと使い方を表示して
+終了コード2で終了します。
+
+```bash
+$ logts-tag
+usage: logts-tag [-h] [--output-format OUTPUT_FORMAT]
+                 [--default-year DEFAULT_YEAR]
+                 [files ...]
+logts-tag: エラー: 対象ファイルが指定されておらず、標準入力からの入力もありません。ファイルを指定するか、パイプで標準入力に渡してください。
+```
+
 ### オプション
 
 | オプション | 説明 | 既定値 |
