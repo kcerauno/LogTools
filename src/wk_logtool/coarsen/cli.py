@@ -12,13 +12,14 @@
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from collections.abc import Iterable
 
 from wk_logtool.common.cli_io import no_piped_input, open_binary_sources
 from wk_logtool.common.text_encoding import decode_line
 
-from .aggregator import count_by_level
+from .aggregator import count_by_level, count_by_level_with_capture
 from .levels import (
     DEFAULT_DAY_START_HOUR,
     DEFAULT_NIGHT_START_HOUR,
@@ -75,6 +76,18 @@ def build_arg_parser() -> argparse.ArgumentParser:
             f"デフォルト{DEFAULT_NIGHT_START_HOUR})。"
         ),
     )
+    parser.add_argument(
+        "--capture-regex",
+        metavar="PATTERN",
+        help=(
+            "指定すると、丸めたタイムスタンプに、正規表現PATTERNの最初の"
+            "キャプチャグループでマッチした文字列を連結してグルーピングする"
+            "(検索対象は行全体)。PATTERNは少なくとも1つのキャプチャグループ"
+            "'(...)' を含む必要がある。マッチしない行、キャプチャグループが"
+            "値を持たない行は集計対象から除外する。"
+            "例: 'MESSAGES:(ERR-\\d+)'"
+        ),
+    )
     return parser
 
 
@@ -102,6 +115,26 @@ def main(argv: list[str] | None = None) -> int:
     else:
         level = get_level(args.level)
 
+    capture_pattern: re.Pattern[str] | None = None
+    if args.capture_regex is not None:
+        try:
+            capture_pattern = re.compile(args.capture_regex)
+        except re.error as exc:
+            parser.print_usage(sys.stderr)
+            print(
+                f"coarsen: エラー: --capture-regex が不正な正規表現です: {exc}",
+                file=sys.stderr,
+            )
+            return 2
+        if capture_pattern.groups < 1:
+            parser.print_usage(sys.stderr)
+            print(
+                "coarsen: エラー: --capture-regex には少なくとも1つの"
+                "キャプチャグループ '(...)' が必要です。",
+                file=sys.stderr,
+            )
+            return 2
+
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -110,8 +143,14 @@ def main(argv: list[str] | None = None) -> int:
             for raw in raw_lines:
                 yield decode_line(raw)
 
-    for bucket_dt, count in count_by_level(_decoded_lines(), level):
-        print(f"{count}\t{level.format(bucket_dt)}")
+    if capture_pattern is not None:
+        for bucket_dt, captured, count in count_by_level_with_capture(
+            _decoded_lines(), level, capture_pattern
+        ):
+            print(f"{count}\t{level.format(bucket_dt)} {captured}")
+    else:
+        for bucket_dt, count in count_by_level(_decoded_lines(), level):
+            print(f"{count}\t{level.format(bucket_dt)}")
 
     return 0
 

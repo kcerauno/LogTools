@@ -3,8 +3,14 @@ import sys
 
 import pytest
 
+import re
+
 from wk_logtool.coarsen import cli
-from wk_logtool.coarsen.aggregator import count_by_level, extract_leading_timestamp
+from wk_logtool.coarsen.aggregator import (
+    count_by_level,
+    count_by_level_with_capture,
+    extract_leading_timestamp,
+)
 from wk_logtool.coarsen.levels import get_level, make_daynight_level
 
 
@@ -138,6 +144,81 @@ def test_cli_daynight_invalid_boundaries_shows_error(
     exit_code = cli.main(
         ["--level", "daynight", "--day-start-hour", "22", "--night-start-hour", "7"]
     )
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert "エラー" in captured.err
+
+
+def test_count_by_level_with_capture_groups_by_bucket_and_captured_value() -> None:
+    lines = [
+        "20091209 Wed 14:55:10\tMESSAGES: ERR-600 something",
+        "20091209 Wed 22:55:10\tMESSAGES: ERR-4030 oops",
+        "20091209 Wed 22:58:10\tMESSAGES: ERR-4031 oops",
+        "20091209 Wed 14:56:10\tMESSAGES: ERR-600 duplicate",
+    ]
+    daynight = get_level("daynight")
+    pattern = re.compile(r"MESSAGES: (ERR-\d+)")
+    result = count_by_level_with_capture(lines, daynight, pattern)
+    formatted = [(daynight.format(dt), captured, count) for dt, captured, count in result]
+    assert formatted == [
+        ("20091209 Wed day", "ERR-600", 2),
+        ("20091209 Wed night", "ERR-4030", 1),
+        ("20091209 Wed night", "ERR-4031", 1),
+    ]
+
+
+def test_count_by_level_with_capture_skips_non_matching_lines() -> None:
+    lines = [
+        "20091209 Wed 14:55:10\tno error code here",
+        "20091209 Wed 14:56:10\tMESSAGES: ERR-600 matched",
+    ]
+    pattern = re.compile(r"MESSAGES: (ERR-\d+)")
+    result = count_by_level_with_capture(lines, get_level("date"), pattern)
+    assert len(result) == 1
+    assert result[0][1] == "ERR-600"
+    assert result[0][2] == 1
+
+
+def test_cli_end_to_end_with_capture_regex(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    data = (
+        b"20091209 Wed 14:55:10\tMESSAGES: ERR-600 something\n"
+        b"20091209 Wed 22:55:10\tMESSAGES: ERR-4030 oops\n"
+        b"20091209 Wed 22:58:10\tMESSAGES: ERR-4031 oops\n"
+    )
+    monkeypatch.setattr(sys, "stdin", _FakeStdin(data))
+    exit_code = cli.main(
+        ["--level", "daynight", "--capture-regex", r"MESSAGES: (ERR-\d+)"]
+    )
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert captured.out == (
+        "1\t20091209 Wed day ERR-600\n"
+        "1\t20091209 Wed night ERR-4030\n"
+        "1\t20091209 Wed night ERR-4031\n"
+    )
+
+
+def test_cli_capture_regex_without_group_shows_error(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    data = b"20091209 Wed 14:55:10\tMESSAGES: ERR-600 something\n"
+    monkeypatch.setattr(sys, "stdin", _FakeStdin(data))
+    exit_code = cli.main(
+        ["--level", "date", "--capture-regex", r"MESSAGES: ERR-\d+"]
+    )
+    captured = capsys.readouterr()
+    assert exit_code == 2
+    assert "エラー" in captured.err
+
+
+def test_cli_capture_regex_invalid_pattern_shows_error(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    data = b"20091209 Wed 14:55:10\tMESSAGES: ERR-600 something\n"
+    monkeypatch.setattr(sys, "stdin", _FakeStdin(data))
+    exit_code = cli.main(["--level", "date", "--capture-regex", r"(unclosed"])
     captured = capsys.readouterr()
     assert exit_code == 2
     assert "エラー" in captured.err

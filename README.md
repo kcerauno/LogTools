@@ -195,6 +195,27 @@ day/nightの境界時刻を変更できます。`--level daynight` 以外を
 coarsen --level daynight --day-start-hour 6 --night-start-hour 20 app.log
 ```
 
+### 正規表現でのキー追加(`--capture-regex`)
+
+`--capture-regex` を指定すると、丸めたタイムスタンプに、正規表現の
+最初のキャプチャグループ `(...)` でマッチした文字列を連結してグルーピング
+できます。検索対象は行全体(タイムスタンプ含む)です。マッチしない行や、
+キャプチャグループが値を持たない行は集計対象から除外されます。
+
+例えば、ログメッセージ中のエラーコードごとに、時間帯別の件数を
+集計したい場合:
+
+```bash
+$ retime --output-format '%Y%m%d %a %H:%M:%S.%f' app.log \
+    | coarsen --level daynight --capture-regex 'MESSAGES:(ERR-\d+)'
+1	20091209 Wed day ERR-600
+1	20091209 Wed night ERR-4030
+1	20091209 Wed night ERR-4031
+```
+
+出力形式は `<件数>\t<丸めたタイムスタンプ> <キャプチャ文字列>` です。
+`--level` にはどの粒度でも指定できます(`daynight`に限りません)。
+
 ### 使い方
 
 `retime`とパイプで組み合わせて使います。`retime`の出力形式によっては
